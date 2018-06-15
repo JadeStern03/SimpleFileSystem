@@ -588,7 +588,7 @@ private:
 	int write(int fd, char wstyle) {
 		string text;
 		char c;
-		while ((c = getche()) != 26) {
+		while ((c = _getche()) != 26) {
 			text.push_back(c);
 		}
 		if (wstyle == 'l') {
