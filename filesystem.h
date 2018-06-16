@@ -1,5 +1,6 @@
 #pragma once
 #include <stdio.h>
+#include <conio.h>
 #include <malloc.h>
 #include <string.h>
 #include <time.h>
@@ -36,7 +37,7 @@ struct FCB {
 	unsigned short inodetableno;
 	unsigned short ninode;
 };
-//16B Ŀ¼�� 44B inode
+//16B 目录项 44B inode
 typedef struct CATALOG { 
 	unsigned short ino;
 	char name[NAMESIZE];
@@ -110,22 +111,22 @@ public:
 	}
 
 private:
-	const int BLOCKSIZE = 512;						//���̿��С
-	const int SIZE = 1024000;						//������̿ռ��С
-	const unsigned short EMPTYCONTRILBLOCK = 16;	//���п���ƿ���
-	const unsigned short INODEBLOCK = 170;			//i�ڵ����
-	const unsigned short DATABLOCKS = 1813;			//���ݿ���
+	const int BLOCKSIZE = 512;						//磁盘块大小
+	const int SIZE = 1024000;						//虚拟磁盘空间大小
+	const unsigned short EMPTYCONTRILBLOCK = 16;	//空闲块控制块数
+	const unsigned short INODEBLOCK = 170;			//i节点块数
+	const unsigned short DATABLOCKS = 1813;			//数据块数
 
-	unsigned char *myvhard;							//�������
-	unsigned char *startp;							//��¼�����������������ʼλ��
+	unsigned char *myvhard;							//虚拟磁盘
+	unsigned char *startp;							//记录虚拟磁盘上数据区开始位置
 	
 	User user;
 	FCB fcb;
-	unsigned short fblock[100];						//��ǰ���д��̿�ջ
-	unsigned short finode[100];						//��ǰ����i �ڵ�ջ
-	useropen open_list[10];							//�û����ļ��б�
-	useropen activity_inode;						//���i �ڵ�
-	string current_path;							//��ǰ·��
+	unsigned short fblock[100];						//当前空闲磁盘块栈
+	unsigned short finode[100];						//当前空闲i 节点栈
+	useropen open_list[10];							//用户打开文件列表
+	useropen activity_inode;						//活动的i 节点
+	string current_path;							//当前路径
 	bool flag;
 
 	FileSystem() {
@@ -226,19 +227,19 @@ private:
 		printf("%s>", current_path.data());
 	}
 	void help() {
-		printf("help\t\t\tָ���б�\n");
-		printf("format\t\t\t��ʽ������\n");
-		printf("mkdir dirname\t\t������Ϊdirname��Ŀ¼\n");
-		printf("rmdir dirname\t\tɾ����Ϊdirname��Ŀ¼\n");
-		printf("ls\t\t\t��ʾ��ǰĿ¼�������ļ����ļ���\n");
-		printf("cd (dirname)\t\t��ʾ��ǰĿ¼�����޸�\n");
-		printf("create filename\t\t������Ϊfilename���ļ�\n");
-		printf("open filename\t\t����Ϊfilename���ļ� �������ļ�fd\n");
-		printf("close fd\t\t�ر�fdΪfd���ļ�\n");
-		printf("rm filename\t\tɾ����Ϊfilename���ļ�\n");
-		printf("write fd -type text\tдfdΪfd���ļ���textΪҪд�����ݣ�CtrlZ����\n");
-		printf("read fd\t\t\t��ȡfdδfd���ļ�������\n");
-		printf("exit\t\t\t�ر�ϵͳ(δ������ļ�����ʧ�޸�����)\n");
+		printf("help\t\t\t指令列表\n");
+		printf("format\t\t\t格式化磁盘\n");
+		printf("mkdir dirname\t\t创建名为dirname的目录\n");
+		printf("rmdir dirname\t\t删除名为dirname的目录\n");
+		printf("ls\t\t\t显示当前目录下所有文件的文件名\n");
+		printf("cd (dirname)\t\t显示当前目录名或修改\n");
+		printf("create filename\t\t创建名为filename的文件\n");
+		printf("open filename\t\t打开名为filename的文件 并返回文件fd\n");
+		printf("close fd\t\t关闭fd为fd的文件\n");
+		printf("rm filename\t\t删除名为filename的文件\n");
+		printf("write fd -type text\t写fd为fd的文件，text为要写的内容，CtrlZ结束\n");
+		printf("read fd\t\t\t读取fd未fd的文件的内容\n");
+		printf("exit\t\t\t关闭系统(未保存的文件将丢失修改内容)\n");
 	}
 	void exitsys() {
 		FILE *fp = fopen("myfsys", "wb+");
@@ -510,6 +511,8 @@ private:
 		open_list[fd].p = NULL;
 	}
 	int write(int fd, const char *text, int len, char wstyle) {
+		printf("\n");
+
 		if (wstyle == 'l') {
 			int cnt = 0;
 			if (len >= BLOCKSIZE * 8 - 1) {
